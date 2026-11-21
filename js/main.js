@@ -1,5 +1,6 @@
-import { startSky } from "./sky.js?v=6";
-import { startAmbient, SKIES } from "./aurora-sky.js?v=6";
+import { startSky } from "./sky.js?v=7";
+import { startAmbient, SKIES } from "./aurora-sky.js?v=7";
+import { MINIS, mountMini } from "./minis.js?v=7";
 
 const CHAPTERS = [
   { id: "dunyaya-merhaba", title: "Merhaba dünya", era: "İlk günler", text: "Minicik eller, uykulu gözler ve bitmeyen battaniye sarmalları. Evimize en güzel misafir geldi." },
@@ -184,8 +185,7 @@ CHAPTERS.forEach((ch, c) => {
         <p class="chapter__text">${ch.text}</p>
       </div>
     </div>
-    <div class="bento"></div>
-    <div class="gallery"></div>`;
+    <div class="bento"></div>`;
   sec.querySelector(".chapter__peek--l").append(img(list[1]));
   sec.querySelector(".chapter__peek--r").append(img(list[2]));
   sec.querySelector(".cell").append(clip(`bolum-${c + 1}`));
@@ -202,19 +202,72 @@ CHAPTERS.forEach((ch, c) => {
     }
     leaderStrip.append(fr);
   }
-  const bento = sec.querySelector(".bento"), g = sec.querySelector(".gallery");
+  // smart bento: tile shapes follow each photo's orientation, with a pixel-art tile and a next-chapter card mixed in
+  const bento = sec.querySelector(".bento");
+  let tall = 0;
   list.forEach((p, k) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "tile";
-    const im = img(p);
+    const r = p.h / p.w;
+    const shape = k === 0 ? "big" : r < 0.85 ? "wide" : r > 1.25 && tall++ % 3 === 1 ? "tall" : "";
+    b.className = `tile${shape ? ` tile--${shape}` : ""}`;
+    const im = img(p, "", shape === "big" || shape === "wide" ? "full" : "thumb");
     b.append(im);
     b.addEventListener("click", () => openLightbox(p.i, im));
     developer.observe(b);
-    (k < 5 ? bento : g).append(b);
+    bento.append(b);
+    if (k === 2) {
+      const m = document.createElement("figure");
+      m.className = "tile tile--pixel";
+      m.innerHTML = `<canvas aria-hidden="true"></canvas><figcaption>${MINIS[c].text}</figcaption>`;
+      mountMini(m.querySelector("canvas"), MINIS[c], { reducedMotion });
+      bento.append(m);
+    }
   });
+  const next = CHAPTERS[c + 1];
+  const card = document.createElement("a");
+  card.className = "tile tile--wide tile--next";
+  if (next) {
+    card.href = `#${next.id}`;
+    card.style.setProperty("--c", `var(--c${c + 2})`);
+    card.innerHTML = `<span class="tile--next__txt"><small>Sıradaki bölüm</small><b>${next.title}</b></span><span class="tile--next__arrow" aria-hidden="true"></span>`;
+    card.prepend(Object.assign(img(byChapter[c + 1][0], "tile--next__bg", "thumb"), { alt: "" }));
+  } else {
+    card.href = "#an";
+    card.innerHTML = `<span class="tile--next__txt"><small>Bir de video var</small><b>Lunaparkta bir an</b></span><span class="tile--next__arrow" aria-hidden="true"></span>`;
+    card.prepend(Object.assign(document.createElement("img"), { src: "media/clips/lunapark.webp", alt: "", className: "tile--next__bg", loading: "lazy" }));
+  }
+  bento.append(card);
   main.append(sec);
 });
+
+// "at a glance" bento
+document.querySelector("[data-chips]").append(
+  ...CHAPTERS.map((ch, c) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<a href="#${ch.id}" style="--c: var(--c${c + 1})"><i>${c + 1}</i>${ch.title}</a>`;
+    return li;
+  }),
+);
+const compare = $("[data-compare]");
+const setCompare = (v) => compare.style.setProperty("--pos", `${v}%`);
+compare.querySelector("input").addEventListener("input", (e) => setCompare(e.target.value));
+setCompare(50);
+const heart = mountMini($("[data-glance-mini]"), MINIS[0], { reducedMotion });
+$(".g-card--pixel").addEventListener("pointerdown", () => (heart.boost = 2));
+clipObserver.observe($("[data-glance-clip]"));
+const latest = byChapter[4].find((p) => p.f === "bugun-01") ?? byChapter[4][0];
+const latestImg = img(latest, "", "full");
+$("[data-glance-photo]").prepend(latestImg);
+$("[data-glance-photo]").setAttribute("aria-label", "Bugünden bir fotoğrafı büyüt");
+$("[data-glance-photo]").addEventListener("click", () => openLightbox(latest.i, latestImg));
+const gstrip = $("[data-glance-strip]");
+for (const p of byChapter.map((l) => l[Math.min(3, l.length - 1)])) {
+  const f = document.createElement("span");
+  f.style.setProperty("--c", `var(--c${p.c})`);
+  f.append(Object.assign(img(p), { alt: "" }));
+  gstrip.append(f);
+}
 
 // timeline: highlight the chapter in view and fill the progress bar
 const frames = [...strip.children];

@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
   <a class="skip" href="#hikaye">Hikâyeye geç</a>
@@ -44,6 +44,38 @@
   <section class="reels" aria-label="Tüm fotoğraflardan şeritler">
     <div class="reel reel--a"><div class="reel__track" data-reel="0"></div></div>
     <div class="reel reel--b"><div class="reel__track" data-reel="1"></div></div>
+  </section>
+
+  <section class="glance" aria-labelledby="glance-title">
+    <div class="glance__grid">
+      <div class="g-card g-card--compare" data-compare>
+        <img class="compare__img" src="media/full/kocaman-oldu-10.webp" alt="Yunus Efe şimdi, gülümserken" width="1200" height="1600">
+        <div class="compare__top">
+          <img class="compare__img" src="media/full/dunyaya-merhaba-04.webp" alt="Yunus Efe ilk günlerinde" width="1200" height="1600">
+        </div>
+        <span class="compare__tag compare__tag--l">İlk günler</span>
+        <span class="compare__tag compare__tag--r">Şimdi</span>
+        <span class="compare__handle" aria-hidden="true"></span>
+        <input class="compare__range" type="range" min="0" max="100" value="50" aria-label="İlk günler ile şimdiyi karşılaştır">
+      </div>
+      <div class="g-card g-card--intro">
+        <h2 id="glance-title">Beş bölüm, yetmiş bir an</h2>
+        <p>İlk nefesten lunapark kahkahalarına kadar her şey bu sayfada. Bir bölüm seç ya da kaydırmaya başla.</p>
+        <ul class="g-chips" data-chips></ul>
+      </div>
+      <figure class="g-card g-card--pixel">
+        <canvas aria-hidden="true" data-glance-mini></canvas>
+        <figcaption>Dokun, kalbi biraz daha hızlı atsın</figcaption>
+      </figure>
+      <a class="g-card g-card--clip" href="#an" aria-label="Lunapark videosuna git">
+        <video src="media/clips/lunapark.mp4" poster="media/clips/lunapark.webp" muted loop playsinline preload="none" aria-hidden="true" data-glance-clip></video>
+        <span class="reel__tag">Lunapark</span>
+      </a>
+      <button class="g-card g-card--photo" type="button" data-glance-photo>
+        <span class="g-card__label">Bugünden</span>
+      </button>
+      <div class="g-card g-card--strip" aria-hidden="true" data-glance-strip></div>
+    </div>
   </section>
 
   <nav class="timeline" aria-label="Zaman çizelgesi">
@@ -95,6 +127,6 @@
     </button>
   </dialog>
 
-  <script type="module" src="js/main.js?v=6"></script>
+  <script type="module" src="js/main.js?v=7"></script>
 </body>
 </html>
