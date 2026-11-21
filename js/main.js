@@ -1,4 +1,5 @@
 import { startSky } from "./sky.js";
+import { startAurora } from "./aurora-sky.js";
 
 const CHAPTERS = [
   { id: "dunyaya-merhaba", title: "Merhaba dünya", era: "İlk günler", text: "Minicik eller, uykulu gözler ve bitmeyen battaniye sarmalları. Evimize en güzel misafir geldi." },
@@ -12,8 +13,7 @@ const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const $ = (s, el = document) => el.querySelector(s);
 
 const sky = startSky($(".hero__sky"), { reducedMotion });
-const pageSky = startSky($(".page-sky"), { reducedMotion, auto: 3.2, fps: 30, seedBase: 9 });
-if (reducedMotion) pageSky.fireCenter(0.25, 0.3), pageSky.fireCenter(0.75, 0.45);
+const pageSky = startAurora($(".page-sky"), { reducedMotion });
 const hero = $(".hero");
 let heroVisible = true;
 const syncSkies = () => {
@@ -126,25 +126,31 @@ CHAPTERS.forEach((ch, c) => {
   sec.style.setProperty("--ci", `var(--c${c + 1}-ink)`);
   sec.innerHTML = `
     <div class="chapter__head">
-      <div class="chapter__fan" aria-hidden="true"></div>
+      <div class="chapter__stage" aria-hidden="true">
+        <div class="chapter__peek chapter__peek--l"></div>
+        <div class="chapter__peek chapter__peek--r"></div>
+        <div class="cell"></div>
+      </div>
       <div class="chapter__copy">
-        <p class="chapter__num">${c + 1}<span>/ ${CHAPTERS.length}</span></p>
-        <h2 class="chapter__title">${ch.title}</h2>
+        <span class="chapter__ghost" aria-hidden="true">${c + 1}</span>
+        <h2 class="chapter__title"><span class="sr">Bölüm ${c + 1}: </span>${ch.title}</h2>
         <p class="chapter__era"><span>${ch.era}</span><span>${list.length} fotoğraf</span></p>
         <p class="chapter__text">${ch.text}</p>
       </div>
     </div>
+    <div class="bento"></div>
     <div class="gallery"></div>`;
-  const fan = sec.querySelector(".chapter__fan");
-  fan.append(img(list[1]), img(list[2]), clip(`bolum-${c + 1}`));
-  const g = sec.querySelector(".gallery");
-  list.forEach((p) => {
+  sec.querySelector(".chapter__peek--l").append(img(list[1]));
+  sec.querySelector(".chapter__peek--r").append(img(list[2]));
+  sec.querySelector(".cell").append(clip(`bolum-${c + 1}`));
+  const bento = sec.querySelector(".bento"), g = sec.querySelector(".gallery");
+  list.forEach((p, k) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "tile";
     b.append(img(p));
     b.addEventListener("click", () => openLightbox(p.i));
-    g.append(b);
+    (k < 5 ? bento : g).append(b);
   });
   main.append(sec);
 });
@@ -164,6 +170,7 @@ function onScroll() {
   $("[data-progress]").style.background = `var(--c${idx + 1})`;
   if (idx !== active) {
     active = idx;
+    pageSky.setLook(idx);
     frames.forEach((f, i) => {
       f.classList.toggle("is-active", i === idx);
       f.classList.toggle("is-past", i < idx);
@@ -174,6 +181,12 @@ function onScroll() {
     strip.scrollTo({ left: f.offsetLeft - (strip.clientWidth - f.clientWidth) / 2, behavior: reducedMotion ? "auto" : "smooth" });
   }
 }
+// polaroids fan out once, the first time each chapter opens on screen
+const revealer = new IntersectionObserver(
+  (entries) => entries.forEach((e) => e.isIntersecting && (e.target.classList.add("is-in"), revealer.unobserve(e.target))),
+  { threshold: 0.35 },
+);
+sections.forEach((s) => revealer.observe(s.querySelector(".chapter__head")));
 addEventListener("scroll", onScroll, { passive: true });
 onScroll();
 
