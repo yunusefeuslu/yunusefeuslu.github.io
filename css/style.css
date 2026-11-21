@@ -1,7 +1,9 @@
 :root {
   --night: #0f1030;
   --night-2: #22245a;
-  --day: #f3f7ff;
+  --day: #0f1030;
+  --text: #f3f4ff;
+  --text-soft: #b9bde8;
   --paper: #ffffff;
   --ink: #1e2148;
   --ink-soft: #545a86;
@@ -19,15 +21,15 @@
   --gutter: clamp(16px, 4vw, 48px);
   --max: 1280px;
   --tl-h: 76px;
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: calc(var(--tl-h) + 16px); }
 body {
   margin: 0;
-  background: var(--day);
-  color: var(--ink);
+  background: var(--night);
+  color: var(--text);
   font: 400 1.0625rem/1.6 var(--body);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -53,6 +55,13 @@ h1, h2 { font-family: var(--display); line-height: 1; margin: 0; }
 .btn--sun:active { transform: translateY(3px); box-shadow: 0 2px 0 #c98f00; }
 .btn--ghost { background: rgb(255 255 255 / .08); color: #fff; border-color: rgb(255 255 255 / .35); backdrop-filter: blur(4px); }
 .btn--ghost:hover { background: rgb(255 255 255 / .16); }
+
+.page-sky {
+  position: fixed; inset: 0; z-index: -1;
+  width: 100%; height: 100%;
+  object-fit: cover; image-rendering: pixelated;
+  opacity: .85; pointer-events: none;
+}
 
 /* hero: the pixel night sky */
 .hero {
@@ -206,7 +215,7 @@ main { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
   position: absolute; top: 50%; left: 50%;
   width: 46%; aspect-ratio: 3 / 4; height: auto; object-fit: cover;
   border: 8px solid #fff; border-bottom-width: 26px; border-radius: 4px;
-  box-shadow: 0 14px 30px rgb(30 33 72 / .18);
+  box-shadow: 0 16px 40px rgb(0 0 0 / .45), 0 0 50px color-mix(in srgb, var(--c) 30%, transparent);
 }
 .chapter__fan img:nth-child(1) { transform: translate(-105%, -50%) rotate(-9deg); }
 .chapter__fan img:nth-child(2) { transform: translate(5%, -48%) rotate(8deg); }
@@ -215,21 +224,32 @@ main { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
   margin: 0; font: 800 clamp(4.5rem, 10vw, 7.5rem)/.8 var(--display); color: var(--c);
   text-shadow: 5px 5px 0 var(--ci);
 }
-.chapter__num span { font-size: .28em; color: var(--ink-soft); text-shadow: none; margin-left: .3em; font-weight: 700; }
-.chapter__title { margin-top: 16px; font-size: clamp(2.4rem, 5.5vw, 4rem); font-weight: 800; color: var(--ink); }
+.chapter__num span { font-size: .28em; color: var(--text-soft); text-shadow: none; margin-left: .3em; font-weight: 700; }
+.chapter__title { margin-top: 16px; font-size: clamp(2.4rem, 5.5vw, 4rem); font-weight: 800; color: var(--text); }
 .chapter__era { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; }
 .chapter__era span {
   font: 700 .9rem/1 var(--display); padding: 8px 12px 6px; border-radius: 999px;
-  background: color-mix(in srgb, var(--c) 18%, #fff); color: var(--ci);
+  background: color-mix(in srgb, var(--c) 24%, var(--night)); color: color-mix(in srgb, var(--c) 55%, #fff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent);
 }
-.chapter__text { margin: 18px 0 0; max-width: 40ch; font-size: 1.15rem; color: var(--ink-soft); }
+.chapter__text { margin: 18px 0 0; max-width: 40ch; font-size: 1.15rem; color: var(--text-soft); }
+.chapter__copy, .moment__text {
+  position: relative; isolation: isolate;
+  text-shadow: 0 2px 14px rgb(15 16 48 / .9);
+}
+.chapter__copy::before, .moment__text::before {
+  content: ""; position: absolute; inset: -40px -60px; z-index: -1;
+  background: radial-gradient(closest-side, rgb(15 16 48 / .85), rgb(15 16 48 / .6) 60%, transparent);
+  pointer-events: none;
+}
 
 .gallery { columns: 4 220px; column-gap: 14px; }
 .tile {
   display: block; width: 100%; margin: 0 0 14px; padding: 0; border: 0;
   break-inside: avoid; cursor: zoom-in; border-radius: 16px; overflow: hidden;
-  background: color-mix(in srgb, var(--c) 25%, #fff);
+  background: color-mix(in srgb, var(--c) 25%, var(--night));
   position: relative;
+  box-shadow: 0 10px 30px rgb(0 0 0 / .35);
 }
 .tile img { width: 100%; height: auto; transition: transform .45s cubic-bezier(.2, .7, .2, 1); }
 .tile::after {
@@ -245,7 +265,7 @@ main { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 6vw, 80px); align-items: center;
 }
 .moment h2 { font-size: clamp(2.4rem, 5.5vw, 4rem); font-weight: 800; }
-.moment p { max-width: 36ch; font-size: 1.15rem; color: var(--ink-soft); }
+.moment p { max-width: 36ch; font-size: 1.15rem; color: var(--text-soft); }
 .moment__media {
   justify-self: center; width: min(100%, 360px);
   padding: 12px; background: var(--c2); border-radius: 30px;
@@ -266,16 +286,10 @@ main { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
     radial-gradient(3px 3px at 89% 58%, #fff 50%, transparent 51%),
     radial-gradient(2px 2px at 6% 80%, #8f97d8 50%, transparent 51%),
     radial-gradient(2px 2px at 54% 85%, #8f97d8 50%, transparent 51%),
-    var(--night);
+    linear-gradient(transparent, rgb(15 16 48 / .7));
   color: #fff; text-align: center;
   padding: 72px var(--gutter) calc(64px + env(safe-area-inset-bottom));
   position: relative;
-}
-.footer::before {
-  content: ""; position: absolute; left: 0; right: 0; top: -30px; height: 31px;
-  background: var(--night);
-  -webkit-mask: linear-gradient(#000 0 0);
-  clip-path: polygon(0 100%, 0 60%, 6% 60%, 6% 30%, 14% 30%, 14% 50%, 24% 50%, 24% 20%, 33% 20%, 33% 45%, 45% 45%, 45% 10%, 55% 10%, 55% 40%, 66% 40%, 66% 25%, 77% 25%, 77% 55%, 88% 55%, 88% 30%, 95% 30%, 95% 60%, 100% 60%, 100% 100%);
 }
 .footer__love { margin: 0 0 28px; font: 800 clamp(2rem, 6vw, 3.4rem)/1.05 var(--display); }
 

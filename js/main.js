@@ -12,8 +12,17 @@ const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const $ = (s, el = document) => el.querySelector(s);
 
 const sky = startSky($(".hero__sky"), { reducedMotion });
+const pageSky = startSky($(".page-sky"), { reducedMotion, auto: 3.2, fps: 30, seedBase: 9 });
+if (reducedMotion) pageSky.fireCenter(0.25, 0.3), pageSky.fireCenter(0.75, 0.45);
 const hero = $(".hero");
-new IntersectionObserver(([e]) => (e.isIntersecting ? sky.play() : sky.pause())).observe(hero);
+let heroVisible = true;
+const syncSkies = () => {
+  const hidden = document.hidden;
+  heroVisible && !hidden ? sky.play() : sky.pause();
+  !heroVisible && !hidden ? pageSky.play() : pageSky.pause();
+};
+new IntersectionObserver(([e]) => ((heroVisible = e.isIntersecting), syncSkies())).observe(hero);
+document.addEventListener("visibilitychange", syncSkies);
 $(".hero__sky").addEventListener("pointerdown", (e) => sky.burstAt(e.clientX, e.clientY));
 $("[data-burst]").addEventListener("click", () => sky.fireCenter(0.3 + Math.random() * 0.4, 0.3));
 $("[data-burst-top]").addEventListener("click", () => setTimeout(() => sky.fireCenter(0.5, 0.35), reducedMotion ? 0 : 700));

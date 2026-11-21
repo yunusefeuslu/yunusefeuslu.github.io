@@ -11,9 +11,10 @@ const BURSTS = [
   { palette: ["#3d0a1a", "#701530", "#b02250", "#f53c7a", "#ff86aa", "#ffd2e0", "#ffffff"], core: PAL.gold },
 ];
 
-export function startSky(canvas, { reducedMotion = false } = {}) {
+export function startSky(canvas, { reducedMotion = false, auto = 0, fps = 60, seedBase = 4 } = {}) {
   const ctx = canvas.getContext("2d");
-  let frame, img, bg, stars = [], bursts = [], seed = 11, running = false, raf = 0, last = 0, burstIdx = 0;
+  let frame, img, bg, stars = [], bursts = [], seed = 11 + seedBase, running = false, raf = 0, last = 0, burstIdx = seedBase, nextAuto = 0.8;
+  const minStep = 1000 / fps - 2;
 
   function build() {
     const portrait = canvas.clientHeight > canvas.clientWidth * 1.1;
@@ -25,7 +26,7 @@ export function startSky(canvas, { reducedMotion = false } = {}) {
     bg = backdrop("sky", W, H);
     const t0 = stars[0]?.t ?? 2;
     stars = [];
-    for (let y = 180, s = 4; y <= H; y += 180, s += 5) {
+    for (let y = 180, s = seedBase; y <= H; y += 180, s += 5) {
       const fx = createFx(shootingStars, { x: 160, y, seed: s, sky: SKY });
       fx.update(t0 + s);
       stars.push(fx);
@@ -41,8 +42,16 @@ export function startSky(canvas, { reducedMotion = false } = {}) {
   }
 
   function tick(now) {
+    if (now - last < minStep) {
+      raf = requestAnimationFrame(tick);
+      return;
+    }
     const dt = Math.min(0.05, (now - last) / 1000 || 0);
     last = now;
+    if (auto && (nextAuto -= dt) <= 0) {
+      nextAuto = auto * (0.6 + Math.random() * 0.8);
+      burstsFire(canvas.width * (0.15 + Math.random() * 0.7), canvas.height * (0.18 + Math.random() * 0.5));
+    }
     for (const s of stars) s.update(dt);
     for (const b of bursts) b.update(dt);
     bursts = bursts.filter((b) => !b.done());
