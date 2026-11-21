@@ -444,3 +444,39 @@ main::before {
   .reel__track { animation: none; }
   *, *::before, *::after { transition-duration: 0s !important; }
 }
+
+/* sky picker */
+.sky-picker {
+  position: fixed; z-index: 30; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+  opacity: 0; transform: translateY(12px); pointer-events: none;
+  transition: opacity .3s, transform .3s;
+}
+.sky-picker.is-shown { opacity: 1; transform: none; pointer-events: auto; }
+.sky-picker__toggle {
+  display: inline-flex; align-items: center; gap: 9px;
+  min-height: 46px; padding: 0 18px 0 14px; border-radius: 999px; cursor: pointer;
+  background: rgb(26 27 61 / .88); color: #fff; border: 2px solid rgb(255 255 255 / .22);
+  font: 700 .98rem/1 var(--display); backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgb(0 0 0 / .4);
+}
+.sky-picker__toggle svg { width: 16px; height: 16px; fill: var(--sun); }
+.sky-picker__toggle[aria-expanded="true"] { border-color: var(--sun); }
+.sky-picker__menu {
+  list-style: none; margin: 0; padding: 8px;
+  background: rgb(26 27 61 / .94); border: 2px solid rgb(255 255 255 / .16); border-radius: 18px;
+  backdrop-filter: blur(10px); box-shadow: 0 20px 50px rgb(0 0 0 / .5);
+  display: grid; gap: 4px; min-width: 220px;
+}
+.sky-picker__menu[hidden] { display: none; }
+.sky-picker__menu button {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  min-height: 44px; padding: 6px 12px; border: 0; border-radius: 12px; cursor: pointer;
+  background: transparent; color: #e6e8ff; font: 700 1rem/1 var(--display); text-align: left;
+}
+.sky-picker__menu button:hover { background: rgb(255 255 255 / .08); }
+.sky-picker__menu button[aria-pressed="true"] { background: #fff; color: var(--ink); }
+.sky-picker__sw { display: inline-flex; }
+.sky-picker__sw i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--film); margin-left: -5px; }
+.sky-picker__sw i:first-child { margin-left: 0; }
+@media (prefers-reduced-motion: reduce) { .sky-picker { transition: none; } }

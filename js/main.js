@@ -1,5 +1,5 @@
 import { startSky } from "./sky.js";
-import { startAurora } from "./aurora-sky.js";
+import { startAmbient, SKIES } from "./aurora-sky.js";
 
 const CHAPTERS = [
   { id: "dunyaya-merhaba", title: "Merhaba dünya", era: "İlk günler", text: "Minicik eller, uykulu gözler ve bitmeyen battaniye sarmalları. Evimize en güzel misafir geldi." },
@@ -13,7 +13,42 @@ const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const $ = (s, el = document) => el.querySelector(s);
 
 const sky = startSky($(".hero__sky"), { reducedMotion });
-const pageSky = startAurora($(".page-sky"), { reducedMotion });
+const storedSky = (() => {
+  try {
+    return localStorage.getItem("gokyuzu");
+  } catch {
+    return null;
+  }
+})();
+const askedSky = new URLSearchParams(location.search).get("gok");
+const pageSky = startAmbient($(".page-sky"), { reducedMotion, sky: askedSky ?? storedSky ?? SKIES[0].id });
+
+// sky picker: lets each visitor choose the background they like
+const picker = $("[data-sky-picker]"), skyToggle = picker.querySelector("button"), skyMenu = picker.querySelector("ul");
+for (const s of SKIES) {
+  const li = document.createElement("li");
+  li.innerHTML = `<button type="button" data-sky="${s.id}"><span class="sky-picker__sw">${s.swatch.map((c) => `<i style="background:${c}"></i>`).join("")}</span>${s.name}</button>`;
+  skyMenu.append(li);
+}
+const markSky = (id) => skyMenu.querySelectorAll("[data-sky]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.sky === id)));
+markSky(askedSky ?? storedSky ?? SKIES[0].id);
+const openPicker = (open) => {
+  skyMenu.hidden = !open;
+  skyToggle.setAttribute("aria-expanded", String(open));
+};
+skyToggle.addEventListener("click", () => openPicker(skyMenu.hidden));
+skyMenu.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-sky]");
+  if (!b) return;
+  pageSky.setSky(b.dataset.sky);
+  markSky(b.dataset.sky);
+  try {
+    localStorage.setItem("gokyuzu", b.dataset.sky);
+  } catch {}
+  openPicker(false);
+});
+document.addEventListener("click", (e) => !picker.contains(e.target) && openPicker(false));
+document.addEventListener("keydown", (e) => e.key === "Escape" && !skyMenu.hidden && (openPicker(false), skyToggle.focus()));
 const hero = $(".hero");
 let heroVisible = true;
 const syncSkies = () => {
@@ -21,7 +56,12 @@ const syncSkies = () => {
   heroVisible && !hidden ? sky.play() : sky.pause();
   !heroVisible && !hidden ? pageSky.play() : pageSky.pause();
 };
-new IntersectionObserver(([e]) => ((heroVisible = e.isIntersecting), syncSkies())).observe(hero);
+new IntersectionObserver(([e]) => {
+  heroVisible = e.isIntersecting;
+  picker.classList.toggle("is-shown", !heroVisible);
+  if (heroVisible) openPicker(false);
+  syncSkies();
+}).observe(hero);
 document.addEventListener("visibilitychange", syncSkies);
 $(".hero__sky").addEventListener("pointerdown", (e) => sky.burstAt(e.clientX, e.clientY));
 $("[data-burst]").addEventListener("click", () => sky.fireCenter(0.3 + Math.random() * 0.4, 0.3));
