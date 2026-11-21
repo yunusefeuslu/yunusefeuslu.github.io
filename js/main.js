@@ -44,20 +44,62 @@ function img(p, cls = "", sizes = "thumb") {
   return el;
 }
 
-// two endless film strips of every photo, running in opposite directions
+// muted looping clips play only while on screen
+const clipObserver = new IntersectionObserver(
+  (entries) => entries.forEach((e) => (e.isIntersecting && !reducedMotion ? e.target.play().catch(() => {}) : e.target.pause())),
+  { rootMargin: "80px" },
+);
+function clip(name) {
+  const v = document.createElement("video");
+  v.muted = true;
+  v.loop = true;
+  v.playsInline = true;
+  v.setAttribute("muted", "");
+  v.setAttribute("playsinline", "");
+  v.preload = "none";
+  v.poster = `media/clips/${name}.webp`;
+  v.src = `media/clips/${name}.mp4`;
+  v.setAttribute("aria-hidden", "true");
+  clipObserver.observe(v);
+  return v;
+}
+
+// two endless film strips crossing each other: photos with chapter clips spliced in
+const REEL_CLIPS = [
+  [{ name: "bolum-1", c: 1 }, { name: "bolum-3", c: 3 }, { name: "bolum-5", c: 5 }],
+  [{ name: "bolum-2", c: 2 }, { name: "bolum-4", c: 4 }, { name: "lunapark", c: 5, label: "Lunapark", href: "#an" }],
+];
 document.querySelectorAll("[data-reel]").forEach((track) => {
   const half = +track.dataset.reel;
   const set = photos.filter((_, i) => i % 2 === half);
   if (half) set.reverse();
+  const items = [];
+  const every = Math.floor(set.length / REEL_CLIPS[half].length);
+  set.forEach((p, i) => {
+    if (i % every === 2 && REEL_CLIPS[half][(i - 2) / every]) items.push(REEL_CLIPS[half][(i - 2) / every]);
+    items.push(p);
+  });
   for (let copy = 0; copy < 2; copy++)
-    for (const p of set) {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "reel__frame";
-      b.style.setProperty("--c", `var(--c${p.c})`);
+    for (const it of items) {
+      const isClip = "name" in it;
+      const b = document.createElement(isClip ? "a" : "button");
+      b.className = "reel__frame" + (isClip ? " reel__frame--clip" : "");
+      b.style.setProperty("--c", `var(--c${it.c})`);
       if (copy) b.setAttribute("aria-hidden", "true"), (b.tabIndex = -1);
-      b.append(img(p));
-      b.addEventListener("click", () => openLightbox(p.i));
+      if (isClip) {
+        const title = it.label ?? CHAPTERS[it.c - 1].title;
+        b.href = it.href ?? `#${CHAPTERS[it.c - 1].id}`;
+        b.setAttribute("aria-label", `${title} bölümüne git`);
+        b.append(clip(it.name));
+        const tag = document.createElement("span");
+        tag.className = "reel__tag";
+        tag.textContent = title;
+        b.append(tag);
+      } else {
+        b.type = "button";
+        b.append(img(it));
+        b.addEventListener("click", () => openLightbox(it.i));
+      }
       track.append(b);
     }
 });
@@ -94,7 +136,7 @@ CHAPTERS.forEach((ch, c) => {
     </div>
     <div class="gallery"></div>`;
   const fan = sec.querySelector(".chapter__fan");
-  [list[1], list[2], list[0]].filter(Boolean).forEach((p) => fan.append(img(p, "", "thumb")));
+  fan.append(img(list[1]), img(list[2]), clip(`bolum-${c + 1}`));
   const g = sec.querySelector(".gallery");
   list.forEach((p) => {
     const b = document.createElement("button");
