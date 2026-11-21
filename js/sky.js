@@ -1,8 +1,7 @@
 import { createFrame, clearFrame, createFx, composite, backdrop, PAL } from "./pixelfx/core/index.js";
-import * as shootingStars from "./pixelfx/fx/weather/shooting-stars.js";
+import * as balloons from "./pixelfx/fx/weather/balloons.js";
 import * as fireworkBurst from "./pixelfx/fx/explosions/firework-burst.js";
 
-const SKY = ["#0f1030", "#22245a", "#454a8c", "#8f97d8", "#e2e6ff"];
 const BURSTS = [
   { palette: PAL.candy, core: PAL.gold },
   { palette: PAL.ice, core: ["#2a2c08", "#6a5c0c", "#b49412", "#f0d424", "#fff066", "#fffac4", "#ffffff"] },
@@ -18,7 +17,7 @@ export function startSky(canvas, { reducedMotion = false, auto = 0, fps = 60, se
 
   function build() {
     const portrait = canvas.clientHeight > canvas.clientWidth * 1.1;
-    const W = 320, H = portrait ? 360 : 180;
+    const [W, H] = portrait ? [180, 320] : [320, 180];
     canvas.width = W;
     canvas.height = H;
     frame = createFrame(W, H);
@@ -26,11 +25,10 @@ export function startSky(canvas, { reducedMotion = false, auto = 0, fps = 60, se
     bg = backdrop("sky", W, H);
     const t0 = stars[0]?.t ?? 2;
     stars = [];
-    for (let y = 180, s = seedBase; y <= H; y += 180, s += 5) {
-      const fx = createFx(shootingStars, { x: 160, y, seed: s, sky: SKY });
-      fx.update(t0 + s);
-      stars.push(fx);
-    }
+    // the balloon dusk, stretched to the full height on portrait screens
+    const fx = createFx(balloons, portrait ? { x: 90, y: 320, tall: 320, seed: seedBase } : { x: 160, y: 180, seed: seedBase });
+    fx.update(t0);
+    stars.push(fx);
   }
 
   function draw() {

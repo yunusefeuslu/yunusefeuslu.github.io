@@ -1,5 +1,5 @@
-import { startSky } from "./sky.js";
-import { startAmbient, SKIES } from "./aurora-sky.js";
+import { startSky } from "./sky.js?v=6";
+import { startAmbient, SKIES } from "./aurora-sky.js?v=6";
 
 const CHAPTERS = [
   { id: "dunyaya-merhaba", title: "Merhaba dünya", era: "İlk günler", text: "Minicik eller, uykulu gözler ve bitmeyen battaniye sarmalları. Evimize en güzel misafir geldi." },
@@ -58,8 +58,6 @@ const syncSkies = () => {
 };
 new IntersectionObserver(([e]) => {
   heroVisible = e.isIntersecting;
-  picker.classList.toggle("is-shown", !heroVisible);
-  if (heroVisible) openPicker(false);
   syncSkies();
 }).observe(hero);
 document.addEventListener("visibilitychange", syncSkies);
@@ -137,8 +135,9 @@ document.querySelectorAll("[data-reel]").forEach((track) => {
         b.append(tag);
       } else {
         b.type = "button";
-        b.append(img(it));
-        b.addEventListener("click", () => openLightbox(it.i));
+        const im = img(it);
+        b.append(im);
+        b.addEventListener("click", () => openLightbox(it.i, im));
       }
       track.append(b);
     }
@@ -155,6 +154,12 @@ CHAPTERS.forEach((ch, c) => {
   strip.append(li);
 });
 
+// photos develop like a polaroid the first time they come into view
+const developer = new IntersectionObserver(
+  (entries) => entries.forEach((e) => e.isIntersecting && (e.target.classList.add("is-dev"), developer.unobserve(e.target))),
+  { threshold: 0.2 },
+);
+
 // chapters
 const main = $("[data-chapters]");
 CHAPTERS.forEach((ch, c) => {
@@ -165,6 +170,7 @@ CHAPTERS.forEach((ch, c) => {
   sec.style.setProperty("--c", `var(--c${c + 1})`);
   sec.style.setProperty("--ci", `var(--c${c + 1}-ink)`);
   sec.innerHTML = `
+    <div class="leader" aria-hidden="true"><div class="leader__strip"></div></div>
     <div class="chapter__head">
       <div class="chapter__stage" aria-hidden="true">
         <div class="chapter__peek chapter__peek--l"></div>
@@ -183,13 +189,28 @@ CHAPTERS.forEach((ch, c) => {
   sec.querySelector(".chapter__peek--l").append(img(list[1]));
   sec.querySelector(".chapter__peek--r").append(img(list[2]));
   sec.querySelector(".cell").append(clip(`bolum-${c + 1}`));
+  // the leader: a countdown frame carried on a strip of this chapter's photos
+  const leaderStrip = sec.querySelector(".leader__strip");
+  for (let k = 0; k < 9; k++) {
+    const fr = document.createElement("div");
+    if (k === 4) {
+      fr.className = "leader__frame leader__frame--count";
+      fr.innerHTML = `<span class="leader__sweep"></span><span class="leader__ring"></span><span class="leader__num">${c + 1}</span>`;
+    } else {
+      fr.className = "leader__frame";
+      fr.append(img(list[(k + 5) % list.length]));
+    }
+    leaderStrip.append(fr);
+  }
   const bento = sec.querySelector(".bento"), g = sec.querySelector(".gallery");
   list.forEach((p, k) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "tile";
-    b.append(img(p));
-    b.addEventListener("click", () => openLightbox(p.i));
+    const im = img(p);
+    b.append(im);
+    b.addEventListener("click", () => openLightbox(p.i, im));
+    developer.observe(b);
     (k < 5 ? bento : g).append(b);
   });
   main.append(sec);
@@ -199,7 +220,22 @@ CHAPTERS.forEach((ch, c) => {
 const frames = [...strip.children];
 const sections = [...main.children];
 let active = -1;
+const leaders = [...document.querySelectorAll(".leader")];
+let scrollQueued = false;
+function queueScroll() {
+  if (scrollQueued) return;
+  scrollQueued = true;
+  requestAnimationFrame(() => ((scrollQueued = false), onScroll()));
+}
 function onScroll() {
+  picker.classList.toggle("is-shown", scrollY > hero.offsetHeight * 0.6);
+  if (!picker.classList.contains("is-shown")) openPicker(false);
+  // each leader strip advances through the "projector" as it crosses the screen
+  for (const l of leaders) {
+    const r = l.getBoundingClientRect();
+    if (r.bottom < -50 || r.top > innerHeight + 50) continue;
+    l.style.setProperty("--p", Math.min(1, Math.max(0, (innerHeight - r.top) / (innerHeight + r.height))).toFixed(4));
+  }
   const mid = innerHeight * 0.4;
   let idx = 0;
   sections.forEach((s, i) => s.getBoundingClientRect().top < mid && (idx = i));
@@ -227,7 +263,8 @@ const revealer = new IntersectionObserver(
   { threshold: 0.35 },
 );
 sections.forEach((s) => revealer.observe(s.querySelector(".chapter__head")));
-addEventListener("scroll", onScroll, { passive: true });
+addEventListener("scroll", queueScroll, { passive: true });
+addEventListener("resize", queueScroll, { passive: true });
 onScroll();
 
 // lightbox
@@ -243,17 +280,55 @@ function show(i) {
   $(".lightbox__count").textContent = `${cur + 1} / ${photos.length}`;
   for (const d of [1, -1]) new Image().src = `media/full/${photos[(cur + d + photos.length) % photos.length].f}.webp`;
 }
-function openLightbox(i) {
+// the thumbnail grows into the viewer and shrinks back on close (View Transitions where supported)
+const canMorph = !!document.startViewTransition && !reducedMotion;
+let origin = null;
+const morph = (update) => {
+  if (!canMorph) return void update();
+  return document.startViewTransition(update).finished.finally(() => {
+    boxImg.style.viewTransitionName = "";
+    if (origin) origin.style.viewTransitionName = "";
+  });
+};
+async function openLightbox(i, from) {
+  origin = from ?? null;
+  if (!canMorph || !origin) return void (show(i), box.showModal());
+  origin.style.viewTransitionName = "photo";
   show(i);
-  box.showModal();
+  await boxImg.decode().catch(() => {});
+  morph(() => {
+    origin.style.viewTransitionName = "";
+    boxImg.style.viewTransitionName = "photo";
+    box.showModal();
+  });
 }
-$(".lightbox__close").addEventListener("click", () => box.close());
-$(".lightbox__prev").addEventListener("click", () => show(cur - 1));
-$(".lightbox__next").addEventListener("click", () => show(cur + 1));
-box.addEventListener("click", (e) => e.target.classList.contains("lightbox__stage") && box.close());
+function closeLightbox() {
+  const back = origin && origin.isConnected && photos[cur].f === origin.src.split("/").pop().replace(".webp", "") ? origin : null;
+  const r = back?.getBoundingClientRect();
+  if (!canMorph || !back || r.bottom < 0 || r.top > innerHeight) return void box.close();
+  boxImg.style.viewTransitionName = "photo";
+  morph(() => {
+    boxImg.style.viewTransitionName = "";
+    back.style.viewTransitionName = "photo";
+    box.close();
+  });
+}
+function step(d) {
+  if (!canMorph) return void show(cur + d);
+  document.documentElement.dataset.dir = d > 0 ? "next" : "prev";
+  boxImg.style.viewTransitionName = "photo";
+  const next = new Image();
+  next.src = `media/full/${photos[(cur + d + photos.length) % photos.length].f}.webp`;
+  next.decode().catch(() => {}).then(() => morph(() => show(cur + d)));
+}
+$(".lightbox__close").addEventListener("click", closeLightbox);
+$(".lightbox__prev").addEventListener("click", () => step(-1));
+$(".lightbox__next").addEventListener("click", () => step(1));
+box.addEventListener("click", (e) => e.target.classList.contains("lightbox__stage") && closeLightbox());
+box.addEventListener("cancel", (e) => (e.preventDefault(), closeLightbox()));
 box.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowRight") show(cur + 1);
-  if (e.key === "ArrowLeft") show(cur - 1);
+  if (e.key === "ArrowRight") step(1);
+  if (e.key === "ArrowLeft") step(-1);
 });
 let sx = null, sy = 0;
 box.addEventListener("pointerdown", (e) => ((sx = e.clientX), (sy = e.clientY)));
@@ -261,5 +336,5 @@ box.addEventListener("pointerup", (e) => {
   if (sx === null) return;
   const dx = e.clientX - sx, dy = e.clientY - sy;
   sx = null;
-  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) show(cur + (dx < 0 ? 1 : -1));
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) step(dx < 0 ? 1 : -1);
 });
